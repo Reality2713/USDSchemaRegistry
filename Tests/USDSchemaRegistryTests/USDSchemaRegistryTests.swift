@@ -115,4 +115,55 @@ struct USDSchemaRegistryTests {
     #expect(USDSchemaTier.vendor == USDSchemaTier.vendor)
     #expect(USDSchemaTier.core != USDSchemaTier.preliminary)
   }
+
+  @Test("Tool coverage defaults to none")
+  func toolCoverageDefault() {
+    let coverage = USDToolCoverage()
+    #expect(coverage.coverage(for: "UsdGeom") == .none)
+  }
+
+  @Test("Tool coverage returns declared level")
+  func toolCoverageDeclared() {
+    let coverage = USDToolCoverage(entries: [
+      "UsdGeom": .good,
+      "UsdShade": .partial,
+    ])
+    #expect(coverage.coverage(for: "UsdGeom") == .good)
+    #expect(coverage.coverage(for: "UsdShade") == .partial)
+    #expect(coverage.coverage(for: "UsdVol") == .none)
+  }
+
+  @Test("Tool coverage gaps returns uncovered schemas")
+  func toolCoverageGaps() {
+    let coverage = USDToolCoverage(entries: [
+      "UsdGeom": .good,
+    ])
+    let gaps = coverage.gaps()
+    #expect(!gaps.isEmpty)
+    #expect(!gaps.contains { $0.id == "UsdGeom" })
+  }
+
+  @Test("Tool coverage schemas at or above level")
+  func toolCoverageAtOrAbove() {
+    let coverage = USDToolCoverage(entries: [
+      "UsdGeom": .good,
+      "UsdShade": .partial,
+      "UsdSkel": .detected,
+    ])
+    let goodPlus = coverage.schemas(atOrAbove: .good)
+    #expect(goodPlus.count == 1)
+    #expect(goodPlus.first?.id == "UsdGeom")
+  }
+
+  @Test("Tool coverage summary counts")
+  func toolCoverageSummary() {
+    let coverage = USDToolCoverage(entries: [
+      "UsdGeom": .good,
+      "UsdShade": .good,
+    ])
+    let summary = coverage.summary()
+    #expect(summary[.good] == 2)
+    let totalCovered = USDSchemaRegistry.all.count
+    #expect(summary[.none] == totalCovered - 2)
+  }
 }
